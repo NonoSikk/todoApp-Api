@@ -92,7 +92,7 @@ input[type="checkbox"]:checked {
   text-decoration: line-through;
 }*/
 
-input[type="checkbox"]:checked {
+input[type="checkbox"]:checked + label {
   text-decoration: line-through;
 }
 

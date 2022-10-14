@@ -1,18 +1,14 @@
+const apiURL = "http://localhost:4730/todos/";
 const btnAddTodo = document.querySelector("#add-todo");
 const btnDelDone = document.querySelector("#del-done");
 let todos = []; //todos ausm local storage ziehen || wenn nichts da = leeres array
-if (JSON.parse(localStorage.getItem("todos")) !== null) {
-  todos = JSON.parse(localStorage.getItem("todos"));
-} else {
-  todos = [];
-}
 
 //let todos = JSON.parse(localStorage.getItem("todos") || [] -> macht if schleife unnöttig
 
 let filterDoneisActive = false;
 let filterOpenisActive = false;
+getData();
 
-render();
 btnAddTodo.addEventListener("click", addTodo);
 
 document.getElementById("done").addEventListener("change", () => {
@@ -33,23 +29,40 @@ document.getElementById("all").addEventListener("change", () => {
   render();
 });
 
-function addTodo() {
+async function addTodo() {
   const todoDescription = document.querySelector("#todo-description");
   if (todoDescription.value < 3) {
     return;
   }
+  let newTodo = { description: todoDescription.value, done: false };
+  const response = await fetch(apiURL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(newTodo),
+  });
+  const data = await response.json();
 
-  todos.push({
+  todos.push(data);
+
+  todoDescription.value = "";
+  todoDescription.focus();
+  render();
+}
+
+/*  todos.push({
     description: todoDescription.value,
     done: false,
   });
+*/
 
+async function getData() {
+  const response = await fetch(apiURL);
+  const data = await response.json();
+
+  todos = data;
   render();
-  //neues todo in array pushen => local storage ändern
-  localStorage.setItem("todos", JSON.stringify(todos));
-  todoDescription.value = "";
-
-  todoDescription.focus();
 }
 
 function render() {
@@ -65,31 +78,33 @@ function render() {
   } else {
     todoList = todos;
   }
-
-  todoList.forEach((todo, index) => {
+  todoList.forEach((todo) => {
     const listEl = document.createElement("li");
     const checkboxEl = document.createElement("input");
     const labelEl = document.createElement("label");
-
     checkboxEl.setAttribute("type", "checkbox");
     checkboxEl.value = todo.description;
     checkboxEl.checked = todo.done;
-    checkboxEl.setAttribute("id", "id-" + index);
+    checkboxEl.setAttribute("id", "id-" + todo.id);
+    labelEl.setAttribute("for", "id-" + todo.id);
     labelEl.innerText = todo.description;
-    labelEl.setAttribute("for", "id-" + index);
-
     listEl.append(checkboxEl);
     listEl.append(labelEl);
     list.append(listEl);
 
-    checkboxEl.addEventListener("change", () => onCheckboxChange(index));
+    checkboxEl.addEventListener("change", function () {
+      todo.done = !todo.done;
+      onCheckboxChange(todo.id, todo);
+    });
   });
 }
-
-function onCheckboxChange(currentIndex) {
-  todos[currentIndex].done = !todos[currentIndex].done;
-  localStorage.setItem("todos", JSON.stringify(todos));
-  render();
+async function onCheckboxChange(id, todo) {
+  const response = await fetch(apiURL + id, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(todo),
+  });
+  const data = await response.json();
 }
 
 function filterDones() {
@@ -102,14 +117,21 @@ function filterOpens() {
 
 btnDelDone.addEventListener("click", delToDo);
 
-function delToDo() {
+async function delToDo() {
+  todoList = filterDones();
+  todoList.forEach((todo) => {
+    fetch(apiURL + todo.id, {
+      method: "DELETE",
+    });
+  });
+  getData();
+}
+
+/* 
   let newList = [];
   todos.filter((todo) => {
-    if (todo.done === false) {
+   if (todo.done === false) {
       newList.push(todo);
     }
-    todos = newList;
-    localStorage.setItem("todos", JSON.stringify(todos));
-    render();
-  });
-}
+    todos = newList; 
+    */
